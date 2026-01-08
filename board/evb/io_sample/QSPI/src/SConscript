@@ -1,0 +1,62 @@
+# for module compiling
+import os
+from building import *
+
+cwd  = GetCurrentDir()
+objs = []
+list = os.listdir(cwd)
+
+# add the general drivers.
+src = Split("""
+""")
+
+src += ['main.c']
+
+
+CPPPATH = [cwd]
+
+app = DefineGroup('app', src, depend = [''], CPPPATH = CPPPATH)
+
+# gui
+src = [ ]
+path = [ ]
+CPPDEFINES = ['ENABLE_HONEYGUI']
+
+src += ['lib/gui.lib']
+
+path += [cwd + '/include']
+path += [cwd + '/include/cJSON']
+path += [cwd + '/include/gifdec']
+path += [cwd + '/include/nanovg']
+path += [cwd + '/include/realgui/core']
+path += [cwd + '/include/realgui/dc']
+path += [cwd + '/include/realgui/engine']
+path += [cwd + '/include/realgui/engine/sw']
+path += [cwd + '/include/realgui/engine/font']
+path += [cwd + '/include/realgui/input']
+path += [cwd + '/include/realgui/server']
+path += [cwd + '/include/realgui/widget/gui_canvas']
+path += [cwd + '/include/realgui/widget/gui_glass']
+path += [cwd + '/include/realgui/widget/gui_gray']
+path += [cwd + '/include/realgui/widget/gui_img']
+path += [cwd + '/include/realgui/widget/gui_list']
+path += [cwd + '/include/realgui/widget/gui_lite3d']
+path += [cwd + '/include/realgui/widget/gui_menu_cellular']
+path += [cwd + '/include/realgui/widget/gui_obj']
+path += [cwd + '/include/realgui/widget/gui_qbcode']
+path += [cwd + '/include/realgui/widget/gui_soccor']
+path += [cwd + '/include/realgui/widget/gui_text']
+path += [cwd + '/include/realgui/widget/gui_video']
+path += [cwd + '/include/realgui/widget/gui_view']
+path += [cwd + '/include/realgui/widget/gui_win']
+
+gui = DefineGroup('gui', src, depend = ['CONFIG_REALTEK_BUILD_GUI_LIB'], CPPPATH = path, CPPDEFINES = CPPDEFINES)
+
+group = app + gui
+
+for d in list:
+    path = os.path.join(cwd, d)
+    if os.path.isfile(os.path.join(path, 'SConscript')):
+        objs = objs + SConscript(os.path.join(d, 'SConscript'))
+
+Return('objs')

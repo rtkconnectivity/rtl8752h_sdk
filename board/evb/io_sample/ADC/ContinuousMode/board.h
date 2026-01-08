@@ -1,0 +1,104 @@
+/**
+*********************************************************************************************************
+*               Copyright(c) 2018, Realtek Semiconductor Corporation. All rights reserved.
+*********************************************************************************************************
+* @file     board.h
+* @brief    Pin definitions and dlps config
+* @details
+* @author   yuan
+* @date     2021-05-31
+* @version  v0.1
+* *********************************************************************************************************
+*/
+
+#ifndef _BOARD_H_
+#define _BOARD_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "trace.h"
+
+/* Defines ------------------------------------------------------------------*/
+/** ADC pin define.
+  */
+#define ADC_SAMPLE_PIN_5                P2_5
+#define ADC_SAMPLE_PIN_7                P2_7
+
+#define ADC_Channel_Index_0         0
+#define ADC_Channel_Index_1         1
+#define ADC_Channel_Index_2         2
+#define ADC_Channel_Index_3         3
+#define ADC_Channel_Index_4         4
+#define ADC_Channel_Index_5         5
+#define ADC_Channel_Index_7         7
+
+
+#define ADC_Schedule_Index_0         0
+#define ADC_Schedule_Index_1         1
+#define ADC_Schedule_Index_2         2
+#define ADC_Schedule_Index_3         3
+#define ADC_Schedule_Index_4         4
+#define ADC_Schedule_Index_5         5
+#define ADC_Schedule_Index_6         6
+#define ADC_Schedule_Index_7         7
+#define ADC_Schedule_Index_8         8
+#define ADC_Schedule_Index_9         9
+#define ADC_Schedule_Index_10        10
+#define ADC_Schedule_Index_11        11
+#define ADC_Schedule_Index_12        12
+#define ADC_Schedule_Index_13        13
+#define ADC_Schedule_Index_14        14
+#define ADC_Schedule_Index_15        15
+
+
+/*******************************************************
+*                 DLPS Module Config
+*******************************************************/
+#define DLPS_EN                         0
+
+
+
+/* if use user define dlps enter/dlps exit callback function */
+#define USE_USER_DEFINE_DLPS_ENTER_CB   1
+#define USE_USER_DEFINE_DLPS_EXIT_CB    1
+
+
+
+/* if use any peripherals below, #define it 1 */
+#define USE_ADC_DLPS                    0
+#define USE_CODEC_DLPS                  0
+#define USE_GPIO_DLPS                   0
+#define USE_I2C0_DLPS                   0
+#define USE_I2C1_DLPS                   0
+#define USE_I2S0_DLPS                   0
+#define USE_IR_DLPS                     0
+#define USE_KEYSCAN_DLPS                0
+#define USE_QDECODER_DLPS               0
+#define USE_SPI0_DLPS                   0
+#define USE_SPI1_DLPS                   0
+#define USE_SPI2W_DLPS                  0
+#define USE_TIM_DLPS                    0
+#define USE_ENHTIM_DLPS                 0
+#define USE_UART0_DLPS                  0
+#define USE_UART1_DLPS                  0
+#define USE_CTC_DLPS                    0
+
+
+
+/* do not modify USE_IO_DRIVER_DLPS macro */
+#define USE_IO_DRIVER_DLPS             ( USE_ADC_DLPS     | USE_CODEC_DLPS | USE_GPIO_DLPS  | USE_I2C0_DLPS   \
+                                         | USE_I2C1_DLPS    | USE_I2S0_DLPS  | USE_IR_DLPS    | USE_KEYSCAN_DLPS\
+                                         | USE_QDECODER_DLPS| USE_SPI0_DLPS  | USE_SPI1_DLPS  | USE_SPI2W_DLPS  \
+                                         | USE_TIM_DLPS     | USE_ENHTIM_DLPS| USE_UART0_DLPS | USE_UART1_DLPS  \
+                                         | USE_CTC_DLPS\
+                                         | USE_USER_DEFINE_DLPS_ENTER_CB\
+                                         | USE_USER_DEFINE_DLPS_EXIT_CB)
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

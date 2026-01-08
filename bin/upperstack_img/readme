@@ -1,0 +1,27 @@
+This file introduces configuration of upperstack image.
+
+/*============================================================================*
+ *                          upperstack_0_0                                    *
+ *============================================================================*/
+If Application uses upperstack_0_0, Application should configure UPPERSTACK_GLOBAL_SIZE
+as value which is larger than or equal to (2 * 1024) in mem_config.h of Application.
+
+/** @brief data ram size for upperstack global variables and code */
+#define UPPERSTACK_GLOBAL_SIZE        (2*1024)
+
+Bluetooth features supported by the upperstack_0_0 are introduced in the upperstack_config.h
+file in the upperstack_0_0 folder. The path of upperstack_config.h for upperstack_0_0 is
+sdk\bin\upperstack_img\upperstack_0_0\upperstack_config.h.
+
+/*============================================================================*
+ *                          upperstack_findmy_0                                    *
+ *============================================================================*/
+If Application uses upperstack_findmy_0, Application should configure UPPERSTACK_GLOBAL_SIZE
+as value which is larger than or equal to (2 * 1024) in mem_config.h of Application.
+
+/** @brief data ram size for upperstack global variables and code */
+#define UPPERSTACK_GLOBAL_SIZE        (2*1024)
+
+Bluetooth features supported by the upperstack_findmy_0 are introduced in the upperstack_config.h
+file in the upperstack_findmy_0 folder. The path of upperstack_config.h for upperstack_findmy_0 is
+sdk\bin\upperstack_img\upperstack_findmy_0\upperstack_config.h.

@@ -1,0 +1,51 @@
+Import('SDK_ROOT')
+Import('WEARABLE_ROOT')
+from building import *
+
+# get current directory
+cwd = GetCurrentDir()
+
+src = Split("""
+""")
+
+CPPDEFINES = ['RTL8752H']
+
+path = [SDK_ROOT + '/inc',
+        SDK_ROOT + '/inc/app',
+        SDK_ROOT + '/inc/peripheral',
+        SDK_ROOT + '/inc/platform',
+        SDK_ROOT + '/inc/os']
+
+src =  [SDK_ROOT + '/bin/mdk/ROM.lib']
+src += [SDK_ROOT + '/bin/mdk/lowerstack.lib']
+src += [SDK_ROOT + '/bin/mdk/rtl8752h_sdk.lib']
+
+src += [SDK_ROOT + '/src/mcu/rtl876x/arm/startup_rtl876x.s']
+src += [SDK_ROOT + '/src/mcu/rtl876x/system_rtl876x.c']
+
+src += [SDK_ROOT + '/src/mcu/rtl876x/overlay_mgr.c']
+
+# src += [WEARABLE_ROOT + '/libc/compilers/armlibc/syscalls.c']
+
+group_bsp = DefineGroup('BSP', src, CPPPATH = path, CPPDEFINES = CPPDEFINES, depend = ['CONFIG_REALTEK_8752H_DEVICE'])
+
+
+
+peripheral = [SDK_ROOT + '/src/mcu/peripheral/rtl876x_pinmux.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_rcc.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_nvic.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_tim.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_io_dlps.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_gdma.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_gpio.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_uart.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_adc.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_spi.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_i2c.c']
+peripheral += [SDK_ROOT + '/src/mcu/peripheral/rtl876x_rtc.c']
+
+group_peri = DefineGroup('peripheral', peripheral, depend = [''], CPPPATH = [SDK_ROOT + '/src/inc/peripheral'])
+
+group = group_bsp + group_peri
+
+Return('group')

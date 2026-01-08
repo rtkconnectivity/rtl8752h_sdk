@@ -1,0 +1,63 @@
+/*
+ * Copyright (c) 2025, Realtek Semiconductor Corporation. All rights reserved.
+ *
+ * SPDX-License-Identifier: LicenseRef-Realtek-5-Clause
+ */
+
+/*============================================================================*
+ *               Define to prevent recursive inclusion
+ *============================================================================*/
+#if ! defined (__CRC16BTX_H)
+#define       __CRC16BTX_H
+
+/*============================================================================*
+ *                               Header Files
+*============================================================================*/
+#include <stdint.h>
+
+
+/** @defgroup CRC_FCS CRC Implementation
+  * @brief CRC implementation for specified polynomial
+  * @{
+  */
+
+/*============================================================================*
+ *                              Macro
+*============================================================================*/
+/** @defgroup CRC_FCS_Exported_Macros CRC Implementation Exported Macros
+    * @{
+    */
+#define BTXFCS_INIT      0x0000  //!< Initial FCS value.
+#define BTXFCS_GOOD      0x0000  //!< Good final FCS value.
+/** @} */ /* End of group CRC_FCS_Exported_Macros */
+
+/*============================================================================*
+  *                                Functions
+  *============================================================================*/
+/** @defgroup CRC_FCS_Exported_Functions CRC Implementation Exported Functions
+    * @brief
+    * @{
+    */
+/**
+* @brief  Calculate a new FCS given the current FCS and the new data.
+*       Polynomial: X**0 + X**2 + X**15 + X16
+*
+* @param[in,out]  fcs in: init value;
+*                     out: generated FCS value
+* @param[in]  cp: data pointer
+* @param[in]  len: length
+*
+* @return FCS value
+*
+*/
+uint16_t btxfcs(uint16_t fcs,
+                uint8_t  *cp,
+                uint32_t len);
+
+/** @} */ /* End of group CRC_FCS_Exported_Functions */
+
+/** @} */ /* End of group CRC_FCS */
+
+#endif  /**< #if ! defined (__CRC16BTX_H) */
+
+/** End of CRC16BTX.H */

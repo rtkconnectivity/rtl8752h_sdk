@@ -1,0 +1,65 @@
+import os
+import sys
+import menu_config
+
+if os.getenv('TOOL_ROOT'):
+    TOOL_ROOT = os.getenv('TOOL_ROOT')
+else:
+    TOOL_ROOT = os.path.normpath(os.getcwd() + '/../..')
+
+# set TOOL_ROOT
+if not os.getenv("TOOL_ROOT"):
+    TOOL_ROOT="../../../../src/app/Wearable/build/scons-tool"
+
+sys.path = sys.path + [os.path.join(TOOL_ROOT, 'tools')]
+try:
+    from building import *
+except:
+    print('Cannot found Scons tool root directory, please check TOOL_ROOT')
+    print(TOOL_ROOT)
+    exit(-1)
+
+TARGET = 'display.' + menu_config.TARGET_EXT
+
+env = Environment(tools = ['mingw'],
+    AS = menu_config.AS, ASFLAGS = menu_config.AFLAGS,
+    CC = menu_config.CC, CCFLAGS = menu_config.CFLAGS,
+    AR = menu_config.AR, ARFLAGS = '-rc',
+    CXX = menu_config.CXX, CXXFLAGS = menu_config.CXXFLAGS,
+    LINK = menu_config.LINK, LINKFLAGS = menu_config.LFLAGS)
+env.PrependENVPath('PATH', menu_config.EXEC_PATH)
+
+if menu_config.PLATFORM == 'iar':
+    env.Replace(CCCOM = ['$CC $CCFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS -o $TARGET $SOURCES'])
+    env.Replace(ARFLAGS = [''])
+    env.Replace(LINKCOM = env["LINKCOM"] + ' --map rtthread.map')
+
+SDK_ROOT = os.path.abspath('./../../../../')
+WRISTBAND_ROOT = os.path.abspath('./src')
+WEARABLE_ROOT = os.path.abspath('./../../../../src/app/Wearable')
+HONEYGUI_ROOT = os.path.abspath('./../../../../src/app/HoneyGUI')
+PLATFORM = menu_config.PLATFORM
+
+Export('PLATFORM')
+Export('TOOL_ROOT')
+Export('SDK_ROOT')
+Export('WEARABLE_ROOT')
+Export('menu_config')
+
+print('BAND ROOT = ' + WRISTBAND_ROOT)
+print('RTT ROOT = ' + TOOL_ROOT)
+print('RTK WEARABLE ROOT = ' + WEARABLE_ROOT)
+
+# prepare building environment
+objs = PrepareBuilding(env, TOOL_ROOT, has_libcpu=False)
+
+
+# include app
+# objs.extend(SConscript(os.path.join(WRISTBAND_ROOT, 'SConscript')))
+objs.extend(SConscript(os.path.join(WEARABLE_ROOT, 'SConscript')))
+objs.extend(SConscript(os.path.join(HONEYGUI_ROOT, 'SConscript')))
+
+# bsp_vdir = 'build'
+
+# make a building
+DoBuilding(TARGET, objs)

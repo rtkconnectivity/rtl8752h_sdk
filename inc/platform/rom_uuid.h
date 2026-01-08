@@ -1,0 +1,10 @@
+/*
+ * Copyright (c) 2025, Realtek Semiconductor Corporation. All rights reserved.
+ *
+ * SPDX-License-Identifier: LicenseRef-Realtek-5-Clause
+ */
+
+#ifndef _symboltable_uuid_h
+#define _symboltable_uuid_h
+#define DEFINE_symboltable_uuid { 0x98,0xc5,0x31,0x9b,0x43,0xc2,0xed,0x11,0xbe,0x06,0x11,0x3b,0x98,0x3e,0xdd,0x6f }
+#endif

@@ -1,0 +1,23 @@
+
+
+from building import *
+
+cwd = GetCurrentDir()
+
+# add the general drivers.
+src = Split("""
+""")
+
+
+if GetDepend(['CONFIG_REALTEK_BSP_USING_QSPI']):
+    src += ['qspi_lcd_platform.c']
+if GetDepend(['CONFIG_REALTEK_ST77916_320_385']):
+    src += ['lcd_st77916g5_320_qspi.c']
+
+CPPPATH = [cwd]
+
+group = DefineGroup('lcd_low_driver', src, CPPPATH = CPPPATH, depend = ['CONFIG_REALTEK_8752H_DEVICE'])
+# print(src)
+# print(group)
+
+Return('group')

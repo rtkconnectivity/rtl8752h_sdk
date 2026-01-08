@@ -1,0 +1,22 @@
+#<SYMDEFS># ARM Linker, 5060960: Last Updated: Tue Mar 14 16:39:23 2023
+0x000479b7 T BB_write_baseband_register
+0x00047b4d T bzdma_ble_set_segment_valid_bitmap
+0x00048643 T bzdma_wait_rxcmd_complete
+0x000486c5 T bzdma_send_burst_rxcmd_and_wait_complete
+0x00050359 T BTMAC_Handler
+0x000506c7 T btmac_pm_check_inactive
+0x00050709 T btmac_pm_initiate_wakeup
+0x00050721 T btmac_pm_set_power_mode
+0x00050727 T btmac_pm_get_power_mode
+0x00050739 T btmac_pm_get_statistics
+0x002029b4 D low_task_handle
+0x002029e4 D g_modem_psd_report_array
+0x00202a61 D bzdma_supported_le_max_seg_num
+0x00202aa4 D bzdma_send_packet_to_ble_data_ring_fifo
+0x00202b2c D vhci_ack
+0x00202b38 D vhci_open
+0x00202b3c D vhci_send
+0x00202c10 D rcp_BB_handle_psd_end_intr_func
+0x00202e44 D rcp_BTMAC_Handler
+0x0020301c D btmac_pm_feature_cfg
+0x00203b84 D Bzdma_Manager
