@@ -97,6 +97,11 @@ void app_handle_io_msg(T_IO_MSG io_msg)
             //Add user code here!
         }
         break;
+		case IO_MSG_TYPE_GPIO:
+        {
+            APP_PRINT_INFO0("[app] app_handle_io_msg: GPIO input msg.");
+            //Add user code here!
+        }
     default:
         break;
     }

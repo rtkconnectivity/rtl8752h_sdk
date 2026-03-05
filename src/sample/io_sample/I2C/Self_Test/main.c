@@ -20,8 +20,12 @@
 #include "rtl876x_rcc.h"
 #include "rtl876x_i2c.h"
 #include "trace.h"
+#include "os_sched.h"
+#include "bmp80.h"
 
 /* Defines ------------------------------------------------------------------*/
+
+#define BMP180_ADDR 0x77
 
 /* I2C pin define*/
 #define I2C_MASTER_SCL_PIN         I2C0_SCL_PIN
@@ -30,13 +34,13 @@
 #define I2C_SLAVER_SCL_PIN         I2C1_SCL_PIN
 #define I2C_SLAVE_SDA_PIN          I2C1_SDA_PIN
 
-#define I2C0_SCL_PIN               P4_0
-#define I2C0_SDA_PIN               P4_1
+#define I2C0_SCL_PIN               P0_6
+#define I2C0_SDA_PIN               P0_5
 
 #define I2C1_SCL_PIN               P4_2
 #define I2C1_SDA_PIN               P4_3
 
-#define I2C_MASTER_SEND_SLAVE_RECEIVE   1
+#define I2C_MASTER_SEND_SLAVE_RECEIVE   0
 #define I2C_MASTER_RECEIVE_SLAVE_SEND   0
 #define I2C_MASTER_REPEAT_READ          0
 
@@ -56,10 +60,10 @@ volatile uint8_t I2C_Rev_Data_Lenth;
 */
 void board_i2c_master_init(void)
 {
-    Pad_Config(I2C_MASTER_SCL_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_ENABLE,
-               PAD_OUT_HIGH);
-    Pad_Config(I2C_MASTER_SDA_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_ENABLE,
-               PAD_OUT_HIGH);
+    Pad_Config(I2C_MASTER_SCL_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_DISABLE,
+               PAD_OUT_LOW);
+    Pad_Config(I2C_MASTER_SDA_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_DISABLE,
+               PAD_OUT_LOW);
 
     Pinmux_Config(I2C_MASTER_SCL_PIN, I2C0_CLK);
     Pinmux_Config(I2C_MASTER_SDA_PIN, I2C0_DAT);
@@ -94,11 +98,11 @@ void driver_i2c_master_init(void)
     I2C_InitTypeDef  I2C_InitStruct;
     I2C_StructInit(&I2C_InitStruct);
 
-    I2C_InitStruct.I2C_ClockSpeed       = 100000;
+    I2C_InitStruct.I2C_ClockSpeed       = 10000;
     I2C_InitStruct.I2C_DeviveMode       = I2C_DeviveMode_Master;
     I2C_InitStruct.I2C_AddressMode      = I2C_AddressMode_7BIT;
-    I2C_InitStruct.I2C_SlaveAddress     = 0x50;
-    I2C_InitStruct.I2C_RxThresholdLevel = 8;
+    I2C_InitStruct.I2C_SlaveAddress     = BMP180_ADDR;
+    I2C_InitStruct.I2C_RxThresholdLevel = 0;
     I2C_InitStruct.I2C_Ack              = I2C_Ack_Enable;
 
     I2C_Init(I2C0, &I2C_InitStruct);
@@ -183,19 +187,10 @@ void nvic_i2c_config(void)
   * @param  No parameter.
   * @return void
 */
-void i2c_demo(void)
+void i2c_demo(void *p_param);
+
+void i2c_demo(void *p_param)
 {
-    /* Configure pad and pinmux firstly! */
-    board_i2c_master_init();
-    board_i2c_slave_init();
-
-    /* Initialize i2c peripheral */
-    driver_i2c_master_init();
-    driver_i2c_slave_init();
-
-    /* Config i2c nvic */
-    nvic_i2c_config();
-
     /* I2C master write */
     uint8_t write_data[TransferLength] ;
 
@@ -203,6 +198,20 @@ void i2c_demo(void)
     {
         write_data[i] = i;
     }
+		
+		while(!begin_bmp())
+		{
+				DBG_DIRECT("Failed to connect to BMP80");
+				//os_delay(10);
+		}
+		
+		//while(true)	
+		for(int i = 0; i < 100; i++)
+		{
+			float temp = readTemperature();
+			DBG_DIRECT("Temperature read: %f", temp);
+			os_delay(3000);
+		}
 
 #if I2C_MASTER_SEND_SLAVE_RECEIVE
     I2C_MasterWrite(I2C0, write_data, TransferLength);
@@ -232,6 +241,9 @@ void i2c_demo(void)
 #endif
 }
 
+void *demo_task_handle; 
+
+
 /**
   * @brief    Entry of app code
   * @return   int (To avoid compile warning)
@@ -241,7 +253,7 @@ int main(void)
     extern uint32_t random_seed_value;
     srand(random_seed_value);
     __enable_irq();
-    i2c_demo();
+    os_task_create(&demo_task_handle, "app", i2c_demo, 0, 256*10, 3);
 
     while (1)
     {

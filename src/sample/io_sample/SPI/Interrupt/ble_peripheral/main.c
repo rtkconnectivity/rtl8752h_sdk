@@ -32,14 +32,22 @@
 #include "ancs.h"
 #endif
 
+#include "rtl876x_gpio.h"
+#include "rtl876x_nvic.h" 
+#include "rtl876x_pinmux.h"
+#include "rtl876x_rcc.h"
+#include "rtl876x_i2c.h"
+
 #include "trace.h"
+#include "board.h"
 
 #include "app.h"
 #include "app_task.h"
 #include "app_flags.h"
 
 #include "io_spi.h"
-
+#include "..\..\..\..\..\board\evb\io_sample\SPI\Interrupt\mdk\epaper.h"
+#include "bmp80.h"
 
 /** @defgroup  PERIPH_DEMO_MAIN Peripheral Main
     * @brief Main file to initialize hardware and BT stack and start task scheduling
@@ -173,6 +181,117 @@ void app_le_profile_init(void)
 #endif
 }
 
+void board_gpio_init(void)
+{
+		Pad_Config(GPIO_DC_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
+    Pad_Config(GPIO_RST_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
+    Pad_Config(GPIO_BUSY_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_NONE, PAD_OUT_DISABLE, PAD_OUT_HIGH);
+		Pad_Config(GPIO_PWR_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
+		Pad_Config(GPIO_BTN_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_DISABLE, PAD_OUT_HIGH);
+
+		Pinmux_Config(GPIO_DC_PIN, DWGPIO);
+		Pinmux_Config(GPIO_RST_PIN, DWGPIO);
+		Pinmux_Config(GPIO_BUSY_PIN, DWGPIO);
+		Pinmux_Config(GPIO_PWR_PIN, DWGPIO);
+		Pinmux_Config(GPIO_BTN_PIN, DWGPIO);
+}
+
+void board_i2c_master_init(void)
+{
+    Pad_Config(I2C_MASTER_SCL_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_DISABLE,
+               PAD_OUT_LOW);
+    Pad_Config(I2C_MASTER_SDA_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_DISABLE,
+               PAD_OUT_LOW);
+
+    Pinmux_Config(I2C_MASTER_SCL_PIN, I2C0_CLK);
+    Pinmux_Config(I2C_MASTER_SDA_PIN, I2C0_DAT);
+}
+
+void driver_gpio_init(void)
+{
+    RCC_PeriphClockCmd(APBPeriph_GPIO, APBPeriph_GPIO_CLOCK, ENABLE);
+
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_StructInit(&GPIO_InitStruct);
+    GPIO_InitStruct.GPIO_Pin    = DC_PIN;
+    GPIO_InitStruct.GPIO_Mode   = GPIO_Mode_OUT;
+    GPIO_InitStruct.GPIO_ITCmd  = DISABLE;
+    GPIO_Init(&GPIO_InitStruct);
+		
+		GPIO_InitStruct.GPIO_Pin    = RST_PIN; 
+		GPIO_Init(&GPIO_InitStruct);
+		
+		GPIO_InitStruct.GPIO_Pin    = PWR_PIN; 
+		GPIO_Init(&GPIO_InitStruct);
+		
+		GPIO_InitStruct.GPIO_Pin    = BUSY_PIN;
+		GPIO_InitStruct.GPIO_Mode   = GPIO_Mode_IN;
+		GPIO_Init(&GPIO_InitStruct);
+	
+		GPIO_InitStruct.GPIO_Pin    = BTN_PIN;
+		GPIO_InitStruct.GPIO_Mode   = GPIO_Mode_IN;
+		GPIO_InitStruct.GPIO_ITCmd  = ENABLE;
+	  GPIO_InitStruct.GPIO_ITTrigger  = GPIO_INT_Trigger_EDGE;
+    GPIO_InitStruct.GPIO_ITPolarity = GPIO_INT_POLARITY_ACTIVE_LOW;
+    GPIO_InitStruct.GPIO_ITDebounce = GPIO_INT_DEBOUNCE_ENABLE;
+    GPIO_InitStruct.GPIO_DebounceTime = 10;/* unit:ms , can be 1~64 ms */
+		GPIO_Init(&GPIO_InitStruct);
+		
+    GPIO_MaskINTConfig(BTN_PIN, ENABLE);
+    GPIO_INTConfig(BTN_PIN, ENABLE);
+    GPIO_ClearINTPendingBit(BTN_PIN);
+    GPIO_MaskINTConfig(BTN_PIN, DISABLE);
+
+    NVIC_InitTypeDef NVIC_InitStruct;
+    NVIC_InitStruct.NVIC_IRQChannel = BTN_PIN_IRQ;
+    NVIC_InitStruct.NVIC_IRQChannelPriority = 3;
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStruct);
+	
+}
+
+void driver_i2c_master_init(void)
+{
+    /* Initialize I2C peripheral */
+    RCC_PeriphClockCmd(APBPeriph_I2C0, APBPeriph_I2C0_CLOCK, ENABLE);
+
+    I2C_InitTypeDef  I2C_InitStruct;
+    I2C_StructInit(&I2C_InitStruct);
+
+    I2C_InitStruct.I2C_ClockSpeed       = 10000;
+    I2C_InitStruct.I2C_DeviveMode       = I2C_DeviveMode_Master;
+    I2C_InitStruct.I2C_AddressMode      = I2C_AddressMode_7BIT;
+    I2C_InitStruct.I2C_SlaveAddress     = BMP180_ADDR;
+    I2C_InitStruct.I2C_RxThresholdLevel = 0;
+    I2C_InitStruct.I2C_Ack              = I2C_Ack_Enable;
+
+    I2C_Init(I2C0, &I2C_InitStruct);
+    I2C_Cmd(I2C0, ENABLE);
+}
+
+void GPIO_Input_Handler(void)
+{
+    GPIO_INTConfig(BTN_PIN, DISABLE);
+    GPIO_MaskINTConfig(BTN_PIN, ENABLE);
+
+    T_IO_MSG int_gpio_msg;
+
+    int_gpio_msg.type = IO_MSG_TYPE_GPIO;
+    int_gpio_msg.subtype = 0;
+    if (false == app_send_msg_to_apptask(&int_gpio_msg))
+    {
+        APP_PRINT_ERROR0("[io_gpio] GPIO_Input_Handler: Send int_gpio_msg failed!");
+        //Add user code here!
+        GPIO_ClearINTPendingBit(BTN_PIN);
+        return;
+    }
+
+    GPIO_ClearINTPendingBit(BTN_PIN);
+    GPIO_MaskINTConfig(BTN_PIN, DISABLE);
+    GPIO_INTConfig(BTN_PIN, ENABLE);
+}
+
+
 /**
   * @brief  Initialize global data.
   * @param  No parameter.
@@ -191,7 +310,9 @@ void global_data_init(void)
   */
 void board_init(void)
 {
+		board_gpio_init();
     board_spi_init();
+		board_i2c_master_init();
 }
 
 /**
@@ -201,7 +322,9 @@ void board_init(void)
  */
 void driver_init(void)
 {
+		driver_gpio_init();
     driver_spi_init();
+		driver_i2c_master_init();
 }
 
 /**
@@ -222,6 +345,13 @@ void task_init(void)
     app_task_init();
 }
 
+void *demo_task_handle;
+
+void epaper_demo(void *p_param)
+{
+		epaper_test();
+}
+
 /**
  * @brief    Entry of APP code
  * @return   int (To avoid compile warning)
@@ -232,12 +362,14 @@ int main(void)
     srand(random_seed_value);
     global_data_init();
     board_init();
+		driver_init();
     le_gap_init(APP_MAX_LINKS);
     gap_lib_init();
     app_le_gap_init();
     app_le_profile_init();
     pwr_mgr_init();
     task_init();
+		os_task_create(&demo_task_handle, "epaper_demo", epaper_demo, 0, 256*10, 3);
     os_sched_start();
 
     return 0;

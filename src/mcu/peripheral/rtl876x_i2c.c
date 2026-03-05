@@ -1,26 +1,27 @@
 /**
-*****************************************************************************************
-*     Copyright(c) 2025, Realtek Semiconductor Corporation. All rights reserved.
-*
-*     SPDX-License-Identifier: Apache-2.0
-*****************************************************************************************
+*********************************************************************************************************
+*               Copyright(c) 2015, Realtek Semiconductor Corporation. All rights reserved.
+**********************************************************************************************************
 * @file     rtl876x_i2c.c
 * @brief    This file provides all the I2C firmware functions.
 * @details
 * @author   elliot chen
 * @date     2015-04-29
 * @version  v0.1
-***************************************************************************************
-* @attention
-* <h2><center>&copy; COPYRIGHT 2025 Realtek Semiconductor Corporation</center></h2>
-***************************************************************************************
+*********************************************************************************************************
 */
 
 /* Includes ------------------------------------------------------------------*/
 #include "rtl876x_rcc.h"
 #include "rtl876x_i2c.h"
+#include "os_sched.h"
+#include "bmp80.h"
+#include "trace.h"
 
 uint32_t I2C_TimeOut = 0xFFFFF;
+int16_t ac1, ac2, ac3, b1, b2, mb, mc, md;
+uint16_t ac4, ac5, ac6;
+
 
 /**
   * @brief  Initializes the I2Cx peripheral according to the specified
@@ -30,6 +31,119 @@ uint32_t I2C_TimeOut = 0xFFFFF;
   *   contains the configuration information for the specified I2C peripheral.
   * @retval None
   */
+
+uint16_t read16(uint8_t a) {
+  uint8_t retbuf[2];
+  uint16_t ret;
+
+  // send 1 byte, reset i2c, read 2 bytes
+  // we could typecast uint16_t as uint8_t array but would need to ensure proper
+  // endianness
+	I2C_Status status1, status2;
+	status1 = I2C_MasterWrite(I2C0, &a, 1);
+	status2 = I2C_MasterRead(I2C0, retbuf, 2);
+	DBG_DIRECT("Read16 MasterWrite Status: %d MasterRead Status: %d", status1, status2);
+  // write_then_read uses uint8_t array
+  ret = retbuf[1] | (retbuf[0] << 8);
+
+  return ret;
+}
+
+void write8(uint8_t a, uint8_t d) {
+	I2C_Status status1, status2;
+	status1 = I2C_MasterWrite(I2C0, &a, 1);
+	status2 = I2C_MasterWrite(I2C0, &d, 1);
+	DBG_DIRECT("Write8 MasterWrite Status: %d MasterRead Status: %d", status1, status2);
+}
+
+uint8_t read8(uint8_t a) {
+  uint8_t ret;
+
+  // send 1 byte, reset i2c, read 1 byte
+	I2C_Status status1, status2;
+	status1 = I2C_MasterWrite(I2C0, &a, 1);
+	status2 = I2C_MasterRead(I2C0, &ret, 1);
+	//DBG_DIRECT("Read8 value decimal: %d hex: %x", ret, ret);
+	//DBG_DIRECT("Read8 MasterWrite Status: %d MasterRead Status: %d", status1, status2);
+  return ret;
+}
+
+int32_t computeB5(int32_t UT) {
+  int32_t X1 = (UT - (int32_t)ac6) * ((int32_t)ac5) >> 15;
+  int32_t X2 = ((int32_t)mc << 11) / (X1 + (int32_t)md);
+  return X1 + X2;
+}
+
+bool begin_bmp() {
+
+  //i2c_dev = new Adafruit_I2CDevice(BMP085_I2CADDR, wire);
+
+	uint8_t read_value = read8(0xD0);
+	DBG_DIRECT("read_value = %x", read_value);
+
+  if (read_value != 0x55)
+    return false;
+	
+	//write8(0xE0, 0xB6);
+	os_delay(10);
+	
+  /* read calibration data */
+  ac1 = read16(BMP085_CAL_AC1);
+  ac2 = read16(BMP085_CAL_AC2);
+  ac3 = read16(BMP085_CAL_AC3);
+  ac4 = read16(BMP085_CAL_AC4);
+  ac5 = read16(BMP085_CAL_AC5);
+  ac6 = read16(BMP085_CAL_AC6);
+
+  b1 = read16(BMP085_CAL_B1);
+  b2 = read16(BMP085_CAL_B2);
+
+  mb = read16(BMP085_CAL_MB);
+  mc = read16(BMP085_CAL_MC);
+  md = read16(BMP085_CAL_MD);
+	
+  DBG_DIRECT("ac1 = %d", ac1);
+  DBG_DIRECT("ac2 = %d", ac2);
+  DBG_DIRECT("ac3 = %d", ac3);
+  DBG_DIRECT("ac4 = %d", ac4);
+  DBG_DIRECT("ac5 = %d", ac5);
+  DBG_DIRECT("ac6 = %d", ac6);
+
+  DBG_DIRECT("b1 = %d", b1);
+  DBG_DIRECT("b2 = %d", b2);
+
+  DBG_DIRECT("mb = %d", mb);
+  DBG_DIRECT("mc = %d", mc);
+  DBG_DIRECT("md = %d", md);
+
+  return true;
+}
+
+#define BMP180_ADDR 0x77
+#define BITSHIFT_BMP180_ADDR (0x77 << 1)
+
+uint16_t readRawTemperature(void) {
+	I2C_SendCmd(I2C0, I2C_WRITE_CMD, 0xF4, I2C_STOP_DISABLE);
+	I2C_SendCmd(I2C0, I2C_WRITE_CMD, 0x2E, I2C_STOP_DISABLE);
+	os_delay(50);
+	I2C_SendCmd(I2C0, I2C_WRITE_CMD, 0xF6, I2C_STOP_DISABLE);
+  return read16(BMP085_TEMPDATA);
+}
+
+float readTemperature(void) {
+  int32_t UT, B5; // following ds convention
+  float temp;
+
+  UT = readRawTemperature();
+	DBG_DIRECT("RawTemperature: %d", UT);
+  B5 = computeB5(UT);
+	DBG_DIRECT("computeB5: %d", B5);
+  temp = (B5 + 8) >> 4;
+  temp /= 10;
+	DBG_DIRECT("temp: %f", temp);
+  return temp;
+}
+
 void I2C_Init(I2C_TypeDef *I2Cx, I2C_InitTypeDef *I2C_InitStruct)
 {
     /* Check the parameters */
@@ -64,9 +178,7 @@ void I2C_Init(I2C_TypeDef *I2Cx, I2C_InitTypeDef *I2C_InitStruct)
         /* set slave address */
         I2Cx->IC_SAR = I2C_InitStruct->I2C_SlaveAddress;
         /* set SDA hold time in slave mode */
-        I2Cx->IC_SDA_HOLD = 0x08;
-        /* set SDA setup time delay only in slave transmitter mode(greater than 2) ,delay time:[(IC_SDA_SETUP - 1) * (ic_clk_period)]*/
-        I2Cx->IC_SDA_SETUP = 0x02;
+         I2Cx->IC_SDA_SETUP = 0x02;
     }
 
 #if 1
@@ -261,30 +373,6 @@ I2C_Status I2C_CheckAbortStatus(I2C_TypeDef *I2Cx)
     return I2C_Success;
 }
 
-static I2C_Status I2C_PollingStatus(I2C_TypeDef *I2Cx, uint16_t I2C_FLAG)
-{
-    I2C_Status abort_status = I2C_Success;
-    uint32_t time_out = I2C_TimeOut;
-    /* wait for flag of I2C_FLAG_TFNF */
-    while (((I2Cx->IC_STATUS & (I2C_FLAG)) == 0) && (time_out != 0))
-    {
-        /* Check abort status */
-        abort_status = I2C_CheckAbortStatus(I2Cx);
-        if (abort_status != I2C_Success)
-        {
-            return abort_status;
-        }
-
-        time_out--;
-        if (time_out == 0)
-        {
-            return I2C_ERR_TIMEOUT;
-        }
-    }
-    return abort_status;
-}
-
-
 /**
   * @brief  Send data in master mode through the I2Cx peripheral.
   * @param  I2Cx: where x can be 0 or 1 to select the I2C peripheral.
@@ -295,6 +383,7 @@ static I2C_Status I2C_PollingStatus(I2C_TypeDef *I2Cx, uint16_t I2C_FLAG)
 I2C_Status I2C_MasterWrite(I2C_TypeDef *I2Cx, uint8_t *pBuf, uint16_t len)
 {
     uint16_t cnt = 0;
+    uint32_t time_out = I2C_TimeOut;
     I2C_Status abort_status = I2C_Success;
 
     /* Check the parameters */
@@ -313,34 +402,29 @@ I2C_Status I2C_MasterWrite(I2C_TypeDef *I2Cx, uint8_t *pBuf, uint16_t len)
             I2Cx->IC_DATA_CMD = *pBuf++;
         }
 
-        abort_status = I2C_PollingStatus(I2Cx, I2C_FLAG_TFNF) ;
-        if (abort_status != I2C_Success)
+        /* wait for flag of I2C_FLAG_TFNF */
+        time_out = I2C_TimeOut;
+        while (((I2Cx->IC_STATUS & (1 << 1)) == 0) && (time_out != 0))
         {
-            return abort_status;
+            /* Check abort status */
+            abort_status = I2C_CheckAbortStatus(I2Cx);
+            if (abort_status != I2C_Success)
+            {
+                return abort_status;
+            }
+
+            time_out--;
+            if (time_out == 0)
+            {
+                return I2C_ERR_TIMEOUT;
+            }
         }
+
         /* Check abort status */
         abort_status = I2C_CheckAbortStatus(I2Cx);
         if (abort_status != I2C_Success)
         {
             return abort_status;
-        }
-    }
-
-    uint32_t time_out = I2C_TimeOut;
-    while ((((I2Cx->IC_STATUS & I2C_FLAG_ACTIVITY) != 0) || \
-            ((I2Cx->IC_STATUS & I2C_FLAG_TFE) == 0)) && (time_out != 0))
-    {
-        /* Check abort status */
-        abort_status = I2C_CheckAbortStatus(I2Cx);
-        if (abort_status != I2C_Success)
-        {
-            return abort_status;
-        }
-
-        time_out--;
-        if (time_out == 0)
-        {
-            return I2C_ERR_TIMEOUT;
         }
     }
 
@@ -358,6 +442,7 @@ I2C_Status I2C_MasterRead(I2C_TypeDef *I2Cx, uint8_t *pBuf, uint16_t len)
 {
     uint16_t cnt = 0;
     uint32_t reg_value = 0;
+    uint32_t time_out = I2C_TimeOut;
     I2C_Status abort_status = I2C_Success;
 
     /* Check the parameters */
@@ -380,20 +465,43 @@ I2C_Status I2C_MasterRead(I2C_TypeDef *I2Cx, uint8_t *pBuf, uint16_t len)
         if (cnt > 0)
         {
             /* wait for I2C_FLAG_RFNE flag */
-            abort_status = I2C_PollingStatus(I2Cx, I2C_FLAG_RFNE) ;
-            if (abort_status != I2C_Success)
+            time_out = I2C_TimeOut;
+            while (((I2Cx->IC_STATUS & (1 << 3)) == 0) && (time_out != 0))
             {
-                return abort_status;
+                /* Check abort status */
+                abort_status = I2C_CheckAbortStatus(I2Cx);
+                if (abort_status != I2C_Success)
+                {
+                    return abort_status;
+                }
+
+                time_out--;
+                if (time_out == 0)
+                {
+                    return I2C_ERR_TIMEOUT;
+                }
             }
+
             *pBuf++ = (uint8_t)I2Cx->IC_DATA_CMD;
         }
     }
 
     /* wait for I2C_FLAG_RFNE flag */
-    abort_status = I2C_PollingStatus(I2Cx, I2C_FLAG_RFNE) ;
-    if (abort_status != I2C_Success)
+    time_out = I2C_TimeOut;
+    while (((I2Cx->IC_STATUS & (1 << 3)) == 0) && (time_out != 0))
     {
-        return abort_status;
+        /* Check abort status */
+        abort_status = I2C_CheckAbortStatus(I2Cx);
+        if (abort_status != I2C_Success)
+        {
+            return abort_status;
+        }
+
+        time_out--;
+        if (time_out == 0)
+        {
+            return I2C_ERR_TIMEOUT;
+        }
     }
 
     *pBuf = (uint8_t)I2Cx->IC_DATA_CMD;
@@ -415,6 +523,7 @@ I2C_Status I2C_RepeatRead(I2C_TypeDef *I2Cx, uint8_t *pWriteBuf, uint16_t Writel
 {
     uint16_t cnt = 0;
     uint32_t reg_value = 0;
+    uint32_t time_out = I2C_TimeOut;
     I2C_Status abort_status = I2C_Success;
 
     /* Check the parameters */
@@ -427,12 +536,22 @@ I2C_Status I2C_RepeatRead(I2C_TypeDef *I2Cx, uint8_t *pWriteBuf, uint16_t Writel
         I2Cx->IC_DATA_CMD = *pWriteBuf++;
 
         /*wait for I2C_FLAG_TFNF flag that Tx FIFO is not full*/
-        abort_status = I2C_PollingStatus(I2Cx, I2C_FLAG_TFNF) ;
-        if (abort_status != I2C_Success)
+        time_out = I2C_TimeOut;
+        while (((I2Cx->IC_STATUS & BIT(1)) == 0) && (time_out != 0))
         {
-            return abort_status;
-        }
+            /* Check abort status */
+            abort_status = I2C_CheckAbortStatus(I2Cx);
+            if (abort_status != I2C_Success)
+            {
+                return abort_status;
+            }
 
+            time_out--;
+            if (time_out == 0)
+            {
+                return I2C_ERR_TIMEOUT;
+            }
+        }
 
         /* Check abort status */
         abort_status = I2C_CheckAbortStatus(I2Cx);
@@ -455,12 +574,35 @@ I2C_Status I2C_RepeatRead(I2C_TypeDef *I2Cx, uint8_t *pWriteBuf, uint16_t Writel
             I2Cx->IC_DATA_CMD = reg_value | BIT(8);
         }
 
-        /*wait for I2C_FLAG_TFNF flag that Tx FIFO is not full*/
-        abort_status = I2C_PollingStatus(I2Cx,  I2C_FLAG_TFNF) ;
-        if (abort_status != I2C_Success)
+        /*read data */
+        if (cnt > 0)
         {
-            return abort_status;
+            /*wait for I2C_FLAG_RFNE flag*/
+            time_out = I2C_TimeOut;
+            while (((I2Cx->IC_STATUS & BIT(3)) == 0) && (time_out != 0))
+            {
+                /* Check abort status */
+                abort_status = I2C_CheckAbortStatus(I2Cx);
+                if (abort_status != I2C_Success)
+                {
+                    return abort_status;
+                }
+
+                time_out--;
+                if (time_out == 0)
+                {
+                    return I2C_ERR_TIMEOUT;
+                }
+            }
+
+            *pReadBuf++ = (uint8_t)I2Cx->IC_DATA_CMD;
         }
+    }
+
+    /*read data*/
+    time_out = I2C_TimeOut;
+    while (((I2Cx->IC_STATUS & BIT(3)) == 0) && (time_out != 0))
+    {
         /* Check abort status */
         abort_status = I2C_CheckAbortStatus(I2Cx);
         if (abort_status != I2C_Success)
@@ -468,25 +610,13 @@ I2C_Status I2C_RepeatRead(I2C_TypeDef *I2Cx, uint8_t *pWriteBuf, uint16_t Writel
             return abort_status;
         }
 
-        /*read data */
-        if (cnt > 0)
+        time_out--;
+        if (time_out == 0)
         {
-            /*wait for I2C_FLAG_RFNE flag*/
-            abort_status = I2C_PollingStatus(I2Cx,  I2C_FLAG_RFNE) ;
-            if (abort_status != I2C_Success)
-            {
-                return abort_status;
-            }
-            *pReadBuf++ = (uint8_t)I2Cx->IC_DATA_CMD;
+            return I2C_ERR_TIMEOUT;
         }
     }
 
-    /*read data*/
-    abort_status = I2C_PollingStatus(I2Cx,  I2C_FLAG_RFNE) ;
-    if (abort_status != I2C_Success)
-    {
-        return abort_status;
-    }
     *pReadBuf = (uint8_t)I2Cx->IC_DATA_CMD;
 
     return abort_status;
@@ -632,6 +762,23 @@ void I2C_ClearINTPendingBit(I2C_TypeDef *I2Cx, uint16_t I2C_IT)
             break;
         }
     }
+}
+
+void i2c_tempdemo(void)
+{
+	while(!begin_bmp())
+		{
+				DBG_DIRECT("Failed to connect to BMP80");
+				//os_delay(10);
+		}
+		
+		//while(true)	
+		for(int i = 0; i < 100; i++)
+		{
+			float temp = readTemperature();
+			DBG_DIRECT("Temperature read: %f", temp);
+		}
+
 }
 
 /******************* (C) COPYRIGHT 2015 Realtek Semiconductor Corporation *****END OF FILE****/

@@ -36,7 +36,7 @@ void board_spi_init(void)
     Pad_Config(SPI0_MOSI_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_ENABLE, PAD_OUT_HIGH);
     Pad_Config(SPI0_MISO_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_ENABLE, PAD_OUT_HIGH);
     Pad_Config(SPI0_CS_PIN, PAD_PINMUX_MODE, PAD_IS_PWRON, PAD_PULL_UP, PAD_OUT_ENABLE, PAD_OUT_HIGH);
-
+	
     Pinmux_Deinit(P4_0);
     Pinmux_Deinit(P4_1);
     Pinmux_Deinit(P4_2);
@@ -60,29 +60,17 @@ void driver_spi_init(void)
     SPI_InitTypeDef  SPI_InitStruct;
     SPI_StructInit(&SPI_InitStruct);
 
-    SPI_InitStruct.SPI_Direction   = SPI_Direction_EEPROM;
+    SPI_InitStruct.SPI_Direction   = SPI_Direction_TxOnly;
     SPI_InitStruct.SPI_Mode        = SPI_Mode_Master;
     SPI_InitStruct.SPI_DataSize    = SPI_DataSize_8b;
-    SPI_InitStruct.SPI_CPOL        = SPI_CPOL_High;
-    SPI_InitStruct.SPI_CPHA        = SPI_CPHA_2Edge;
-    SPI_InitStruct.SPI_BaudRatePrescaler  = 50;
-    /* SPI_Direction_EEPROM mode read data lenth. */
-    SPI_InitStruct.SPI_RxThresholdLevel  = 1 - 1;/* Flash id lenth = 3*/
-    SPI_InitStruct.SPI_NDF               = 1 - 1;/* Flash id lenth = 3*/
-    /* cause SPI_INT_RXF interrupt if data length in receive FIFO  >= SPI_RxThresholdLevel + 1*/
+    SPI_InitStruct.SPI_CPOL        = SPI_CPOL_Low;
+    SPI_InitStruct.SPI_CPHA        = SPI_CPHA_1Edge;
+    SPI_InitStruct.SPI_BaudRatePrescaler  = 64;
     SPI_InitStruct.SPI_FrameFormat = SPI_Frame_Motorola;
 
     SPI_Init(SPI0, &SPI_InitStruct);
     SPI_Cmd(SPI0, ENABLE);
 
-    /* detect receive data */
-    SPI_INTConfig(SPI0, SPI_INT_RXF, ENABLE);
-    /* Config SPI interrupt */
-    NVIC_InitTypeDef NVIC_InitStruct;
-    NVIC_InitStruct.NVIC_IRQChannel = SPI0_IRQn;
-    NVIC_InitStruct.NVIC_IRQChannelPriority = 3;
-    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStruct);
 }
 
 /**
@@ -92,10 +80,10 @@ void driver_spi_init(void)
 */
 void spi_demo(void)
 {
-    uint8_t id[10];
-    APP_PRINT_INFO0("[io_spi] spi_demo: Read flash id.");
-    spi_flash_read_id(DEVICE_ID, id);
-    flash_id_type = 0;
+    //uint8_t id[10];
+    //APP_PRINT_INFO0("[io_spi] spi_demo: Read flash id.");
+    //spi_flash_read_id(DEVICE_ID, id);
+    //flash_id_type = 0;
 }
 
 /**

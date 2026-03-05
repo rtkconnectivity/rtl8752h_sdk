@@ -99,7 +99,7 @@ void app_main_task(void *p_param)
 
     gap_start_bt_stack(evt_queue_handle, io_queue_handle, MAX_NUMBER_OF_GAP_MESSAGE);
 
-    driver_init();
+    
     while (true)
     {
         if (os_msg_recv(evt_queue_handle, &event, 0xFFFFFFFF) == true)
