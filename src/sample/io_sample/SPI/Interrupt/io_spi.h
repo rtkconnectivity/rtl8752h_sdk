@@ -25,15 +25,22 @@ extern "C" {
 #include "rtl876x_pinmux.h"
 #include "rtl876x_rcc.h"
 #include "rtl876x_spi.h"
+#include "dlps.h"
 
 #include "board.h"
 
 #include "app_msg.h"
 
+/* Globals ------------------------------------------------------------------*/
+extern PMCheckResult IO_SPI_DLPS_Enter_Allowed;
+
 void board_spi_init(void);
 void driver_spi_init(void);
 void spi_demo(void);
 void io_handle_spi_msg(T_IO_MSG *io_spi_msg);
+void io_spi_dlps_enter(void);
+void io_spi_dlps_exit(void);
+PMCheckResult io_spi_dlps_check(void);
 
 
 #ifdef __cplusplus

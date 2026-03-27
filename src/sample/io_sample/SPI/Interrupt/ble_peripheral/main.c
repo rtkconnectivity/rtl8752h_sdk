@@ -45,6 +45,9 @@
 #include "app_task.h"
 #include "app_flags.h"
 
+#include "dlps.h"
+#include "rtl876x_io_dlps.h"
+
 #include "io_spi.h"
 #include "..\..\..\..\..\board\evb\io_sample\SPI\Interrupt\mdk\epaper.h"
 #include "bmp80.h"
@@ -333,6 +336,21 @@ void driver_init(void)
  */
 void pwr_mgr_init(void)
 {
+#if DLPS_EN
+    if (false == dlps_check_cb_reg(io_spi_dlps_check))
+    {
+        APP_PRINT_ERROR0("Error: dlps_check_cb_reg(io_spi_dlps_check) failed!");
+    }
+    DLPS_IORegUserDlpsEnterCb(io_spi_dlps_enter);
+    DLPS_IORegUserDlpsExitCb(io_spi_dlps_exit);
+    DLPS_IORegister();
+    lps_mode_set(PLATFORM_DLPS_PFM);
+
+    /* Config WakeUp pin - use button pin for wakeup */
+    System_WakeUpPinEnable(DLPS_WAKEUP_PIN, PAD_WAKEUP_POL_LOW, 0, 0);
+#else
+    lps_mode_set(PLATFORM_ACTIVE);
+#endif
 }
 
 /**
@@ -374,6 +392,23 @@ int main(void)
 
     return 0;
 }
+
+/**
+  * @brief  System interrupt handler function, for wakeup pin.
+  * @param  No parameter.
+  * @return void
+*/
+void System_Handler(void)
+{
+    APP_PRINT_INFO0("[main] System_Handler");
+    if (System_WakeUpInterruptValue(DLPS_WAKEUP_PIN) == SET)
+    {
+        System_WakeUpPinDisable(DLPS_WAKEUP_PIN);
+        Pad_ClearWakeupINTPendingBit(DLPS_WAKEUP_PIN);
+        IO_SPI_DLPS_Enter_Allowed = PM_CHECK_FAIL;
+    }
+}
+
 /** @} */ /* End of group PERIPH_DEMO_MAIN */
 
 

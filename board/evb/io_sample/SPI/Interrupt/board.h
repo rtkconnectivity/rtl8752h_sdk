@@ -19,6 +19,8 @@ extern "C" {
 #endif
 
 #define FLASH_SPI                   SPI0
+#define BMP180_ADDR 0x77
+#define TransferLength             24
 
 /* SPI pin define*/
 #define SPI0_SCK_PIN                P4_0
@@ -26,11 +28,35 @@ extern "C" {
 #define SPI0_MOSI_PIN               P4_2
 #define SPI0_CS_PIN                 P4_3
 
+/* GPIO pin define*/
+#define GPIO_DC_PIN									P3_2
+#define GPIO_RST_PIN								P2_2
+#define GPIO_BUSY_PIN								P2_3
+#define GPIO_PWR_PIN								P2_4
+#define GPIO_BTN_PIN								P3_3
+
+#define DC_PIN        							GPIO_GetPin(GPIO_DC_PIN)
+#define RST_PIN        							GPIO_GetPin(GPIO_RST_PIN)
+#define BUSY_PIN         						GPIO_GetPin(GPIO_BUSY_PIN)
+#define PWR_PIN											GPIO_GetPin(GPIO_PWR_PIN)
+#define BTN_PIN											GPIO_GetPin(GPIO_BTN_PIN)
+
+#define BTN_PIN_IRQ									GPIO27_IRQn
+#define GPIO_Input_Handler					GPIO27_Handler
+
+/* DLPS Wakeup Pin define */
+#define DLPS_WAKEUP_PIN                GPIO_BTN_PIN
+
+#define I2C_MASTER_SCL_PIN         I2C0_SCL_PIN
+#define I2C_MASTER_SDA_PIN         I2C0_SDA_PIN
+
+#define I2C0_SCL_PIN               P0_6
+#define I2C0_SDA_PIN               P0_5
 
 /*******************************************************
 *                 DLPS Module Config
 *******************************************************/
-#define DLPS_EN                         0
+#define DLPS_EN                         1
 
 
 
@@ -50,7 +76,7 @@ extern "C" {
 #define USE_IR_DLPS                     0
 #define USE_KEYSCAN_DLPS                0
 #define USE_QDECODER_DLPS               0
-#define USE_SPI0_DLPS                   0
+#define USE_SPI0_DLPS                   1
 #define USE_SPI1_DLPS                   0
 #define USE_SPI2W_DLPS                  0
 #define USE_TIM_DLPS                    0

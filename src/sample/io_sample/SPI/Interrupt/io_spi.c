@@ -20,10 +20,12 @@
 
 #include "spi_flash.h"
 #include "app_task.h"
+#include "trace.h"
 
 /* Globals ------------------------------------------------------------------*/
 
 uint8_t flash_id_type = 0;
+PMCheckResult IO_SPI_DLPS_Enter_Allowed = PM_CHECK_FAIL;
 
 /**
   * @brief  Initialization of pinmux settings and pad settings.
@@ -71,6 +73,48 @@ void driver_spi_init(void)
     SPI_Init(SPI0, &SPI_InitStruct);
     SPI_Cmd(SPI0, ENABLE);
 
+    /* Allow DLPS after SPI init */
+    IO_SPI_DLPS_Enter_Allowed = PM_CHECK_PASS;
+}
+
+/**
+  * @brief  IO enter dlps call back function.
+  * @param  No parameter.
+  * @return void
+  */
+void io_spi_dlps_enter(void)
+{
+    DBG_DIRECT("[io_spi] enter dlps");
+    /* Switch pad to Software mode */
+    Pad_ControlSelectValue(SPI0_SCK_PIN, PAD_SW_MODE);
+    Pad_ControlSelectValue(SPI0_MOSI_PIN, PAD_SW_MODE);
+    Pad_ControlSelectValue(SPI0_MISO_PIN, PAD_SW_MODE);
+    Pad_ControlSelectValue(SPI0_CS_PIN, PAD_SW_MODE);
+}
+
+/**
+  * @brief  IO exit dlps call back function.
+  * @param  No parameter.
+  * @return void
+  */
+void io_spi_dlps_exit(void)
+{
+    /* Switch pad to Pinmux mode */
+    Pad_ControlSelectValue(SPI0_SCK_PIN, PAD_PINMUX_MODE);
+    Pad_ControlSelectValue(SPI0_MOSI_PIN, PAD_PINMUX_MODE);
+    Pad_ControlSelectValue(SPI0_MISO_PIN, PAD_PINMUX_MODE);
+    Pad_ControlSelectValue(SPI0_CS_PIN, PAD_PINMUX_MODE);
+    DBG_DIRECT("[io_spi] exit dlps");
+}
+
+/**
+  * @brief  IO enter dlps check function.
+  * @param  No parameter.
+  * @return PMCheckResult
+  */
+PMCheckResult io_spi_dlps_check(void)
+{
+    return IO_SPI_DLPS_Enter_Allowed;
 }
 
 /**
@@ -103,6 +147,9 @@ void io_spi_handle_msg(T_IO_MSG *io_spi_msg)
     {
         spi_flash_read_id((Flash_ID_Type)flash_id_type, id);
     }
+
+    /* Allow DLPS after SPI operation is handled */
+    IO_SPI_DLPS_Enter_Allowed = PM_CHECK_PASS;
 }
 
 /**
