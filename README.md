@@ -3,6 +3,11 @@
 ## Introduction on using the RTL8752H
 Welcome to a tutorial introduction on the RTL8752H. Today, I will describe to you how you too can setup a simple project for the RTL8752H. For this project, we'll be going over how to use a few of the peripherals, some of the OS, and how to setup DLPS, our Deep Low Power Sleep system. 
 
+So we're connecting our RTl8752H to two different sensors like so: 
+![Here is a general diagram of how the system will look](image.png)
+
+![This is how the flow works](image-1.png)
+
 # SPI
 
 This first demo implements SPI master communication. The SPI peripheral (named SPI0) is configured to communicate with a e-paper display.
